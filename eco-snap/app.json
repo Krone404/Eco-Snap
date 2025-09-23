@@ -15,7 +15,9 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Eco Snap needs access to your camera to take species photos."
+        "NSCameraUsageDescription": "Eco Snap needs access to your camera to take species photos.",
+        "NSLocationWhenInUseUsageDescription": "Eco Snap uses your location to suggest nearby species.",
+        "NSPhotoLibraryAddUsageDescription": "Eco Snap saves your captured photos to your gallery."
       }
     },
     "android": {
