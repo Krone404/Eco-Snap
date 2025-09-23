@@ -13,7 +13,10 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Eco Snap needs access to your camera to take species photos."
+      }
     },
     "android": {
       "adaptiveIcon": {
