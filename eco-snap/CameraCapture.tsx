@@ -1,168 +1,167 @@
-import React, { useEffect, useRef, useState } from "react";
-import { View, StyleSheet, Pressable, Text, Platform } from "react-native";
+import React, { useRef, useState, useEffect } from "react";
+import { View, StyleSheet, Pressable, Text, Alert } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as MediaLibrary from "expo-media-library";
 import * as Location from "expo-location";
-import Constants from "expo-constants";
-import styles from "./styles";
 
 export type CapturedMeta = {
   uri: string;
   savedToGallery: boolean;
-  location?: { lat: number; lon: number; accuracy?: number };
+  location?: {
+    lat: number;
+    lon: number;
+  };
 };
 
 type Props = {
-  onClose: () => void;
   onCaptured: (meta: CapturedMeta) => void;
+  onClose: () => void;
 };
 
-export default function CameraCapture({ onClose, onCaptured }: Props) {
+export default function CameraCapture({ onCaptured, onClose }: Props) {
+  const [permission, requestPermission] = useCameraPermissions();
+  const [flash, setFlash] = useState<"off" | "on">("off");
   const camRef = useRef<CameraView>(null);
-  const [camPerm, requestCamPerm] = useCameraPermissions();
-  const [libPerm, requestLibPerm] = MediaLibrary.usePermissions();
 
-  const [ready, setReady] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [torch, setTorch] = useState(false); // <- use enableTorch with CameraView
-
-  const isExpoGo = Constants.appOwnership === "expo";
-
-  // Ask permissions on mount
   useEffect(() => {
     (async () => {
-      if (!camPerm?.granted) await requestCamPerm();
-      if (!libPerm?.granted) await requestLibPerm();
-      await Location.requestForegroundPermissionsAsync();
-      if (Platform.OS === "android") {
-        try {
-          await Location.enableNetworkProviderAsync();
-        } catch {}
+      if (!permission?.granted) {
+        await requestPermission();
       }
+      await MediaLibrary.requestPermissionsAsync();
+      await Location.requestForegroundPermissionsAsync();
     })();
   }, []);
 
-  if (!camPerm) return null;
+  async function snap() {
+    try {
+      if (!camRef.current) return;
 
-  if (!camPerm.granted) {
+      const photo = await camRef.current.takePictureAsync({
+        quality: 0.9,
+        skipProcessing: true,
+      });
+      if (!photo?.uri) throw new Error("Failed to capture photo");
+
+      // Save to gallery
+      let savedToGallery = false;
+      try {
+        await MediaLibrary.saveToLibraryAsync(photo.uri);
+        savedToGallery = true;
+      } catch {
+        savedToGallery = false;
+      }
+
+      // Get GPS location
+      let coords: { lat: number; lon: number } | undefined = undefined;
+      try {
+        const loc = await Location.getCurrentPositionAsync({});
+        coords = { lat: loc.coords.latitude, lon: loc.coords.longitude };
+      } catch {
+        coords = undefined;
+      }
+
+      onCaptured({ uri: photo.uri, savedToGallery, location: coords });
+    } catch (e: any) {
+      console.error(e);
+      Alert.alert("Error", "Failed to capture photo");
+    }
+  }
+
+  if (!permission?.granted) {
     return (
       <View style={styles.center}>
-        <Text style={styles.centerText}>Camera permission needed</Text>
-        <Pressable style={styles.pill} onPress={requestCamPerm}>
-          <Text style={styles.pillText}>Grant</Text>
+        <Text>No access to camera</Text>
+        <Pressable onPress={requestPermission} style={styles.button}>
+          <Text style={styles.buttonText}>Grant Permission</Text>
         </Pressable>
-        <Pressable style={[styles.pill, { marginTop: 8 }]} onPress={onClose}>
-          <Text style={styles.pillText}>Cancel</Text>
+        <Pressable onPress={onClose} style={[styles.button, { backgroundColor: "gray" }]}>
+          <Text style={styles.buttonText}>Close</Text>
         </Pressable>
       </View>
     );
   }
 
-  async function getBestEffortLocation() {
-    try {
-      const last = await Location.getLastKnownPositionAsync();
-      if (last) {
-        return {
-          lat: last.coords.latitude,
-          lon: last.coords.longitude,
-          accuracy: last.coords.accuracy ?? undefined,
-        };
-      }
-    } catch {}
-    try {
-      const current = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      return {
-        lat: current.coords.latitude,
-        lon: current.coords.longitude,
-        accuracy: current.coords.accuracy ?? undefined,
-      };
-    } catch {
-      return undefined;
-    }
-  }
-
-  async function saveToGallery(uri: string) {
-    // In Expo Go on Android, full save to Photos is limited; we'll still try, but expect false
-    try {
-      if (libPerm?.granted && !(isExpoGo && Platform.OS === "android")) {
-        await MediaLibrary.saveToLibraryAsync(uri);
-        return true;
-      }
-    } catch {}
-    return false;
-  }
-
-  async function snap() {
-    if (busy) return;
-    setBusy(true);
-    try {
-      const [loc, pic] = await Promise.all([
-        getBestEffortLocation(),
-        camRef.current?.takePictureAsync({
-          quality: 0.9,
-          skipProcessing: true,
-          exif: true,
-        }),
-      ]);
-      if (!pic?.uri) throw new Error("No URI from camera");
-
-      const saved = await saveToGallery(pic.uri);
-
-      onCaptured({
-        uri: pic.uri,
-        savedToGallery: !!saved,
-        location: loc,
-      });
-    } catch (e) {
-      console.error("Capture failed", e);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
-    <View style={{ flex: 1, backgroundColor: "black" }}>
+    <View style={styles.container}>
       <CameraView
         ref={camRef}
-        style={{ flex: 1 }}
+        style={styles.camera}
         facing="back"
-        mode="picture"
-        animateShutter
-        enableTorch={torch} // ✅ correct prop for CameraView
-        onCameraReady={() => setReady(true)}
-        onMountError={(e: unknown) =>
-          console.error("Camera mount error", (e as any)?.message ?? e)
-        }
-      />
+        flash={flash}
+      >
+        <View style={styles.controls}>
+          <Pressable
+            style={[styles.controlButton, { backgroundColor: flash === "on" ? "orange" : "black" }]}
+            onPress={() => setFlash(flash === "off" ? "on" : "off")}
+          >
+            <Text style={styles.controlText}>⚡</Text>
+          </Pressable>
 
-      {/* Top bar */}
-      <View style={styles.topBar}>
-        <Pressable style={styles.pill} onPress={onClose}>
-          <Text style={styles.pillText}>Close</Text>
-        </Pressable>
+          <Pressable style={styles.captureButton} onPress={snap}>
+            <View style={styles.innerCircle} />
+          </Pressable>
 
-        <View style={{ flex: 1 }} />
-
-        <Pressable
-          style={[styles.pill, { marginLeft: 8 }]}
-          onPress={() => setTorch((t) => !t)}
-        >
-          <Text style={styles.pillText}>
-            {torch ? "Flash: ON" : "Flash: OFF"}
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* Bottom bar */}
-      <View style={styles.bottomBar}>
-        <Pressable
-          onPress={snap}
-          style={[styles.shutter, busy && { opacity: 0.5 }]}
-        />
-        {!ready && <Text style={styles.hint}>Opening camera…</Text>}
-      </View>
+          <Pressable style={styles.controlButton} onPress={onClose}>
+            <Text style={styles.controlText}>✖</Text>
+          </Pressable>
+        </View>
+      </CameraView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "black" },
+  camera: { flex: 1 },
+  controls: {
+    position: "absolute",
+    bottom: 40,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+    alignItems: "center",
+  },
+  captureButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  innerCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#fff",
+  },
+  controlButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  controlText: {
+    color: "white",
+    fontSize: 22,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  button: {
+    marginTop: 16,
+    backgroundColor: "#28a745",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 6,
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 16,
+  },
+});
