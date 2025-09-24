@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, Text, View, Image, Pressable } from "react-native";
+import { StyleSheet, Text, View, Image, Pressable, ImageBackground } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import CameraCapture, { CapturedMeta } from "./CameraCapture";
 import styles from "./styles";
@@ -21,15 +21,19 @@ export default function App() {
   }
 
   return (
-    <View style={styles.container}>
+    <ImageBackground
+      source={require("./assets/bgimage.jpg")}
+      style={styles.container}
+      imageStyle={{ resizeMode: "cover" }} // makes the image scale properly
+    >
       <StatusBar style="auto" />
       <Text style={styles.title}>Eco Snap</Text>
       <Text style={styles.sub}>Explore, snap a species, collect the card.</Text>
-
+  
       <Pressable style={styles.cta} onPress={() => setOpenCamera(true)}>
         <Text style={styles.ctaText}>Open Camera</Text>
       </Pressable>
-
+  
       {last && (
         <View style={styles.previewWrap}>
           <Text style={styles.previewLabel}>Last capture</Text>
@@ -47,6 +51,6 @@ export default function App() {
           </Text>
         </View>
       )}
-    </View>
+    </ImageBackground>
   );
 }
