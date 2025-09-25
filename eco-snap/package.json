@@ -16,6 +16,7 @@
     "expo-camera": "~17.0.8",
     "expo-constants": "~18.0.9",
     "expo-file-system": "~19.0.15",
+    "expo-linear-gradient": "~15.0.7",
     "expo-location": "~19.0.7",
     "expo-media-library": "~18.2.0",
     "expo-router": "~6.0.8",
@@ -25,6 +26,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@types/expo__vector-icons": "^9.0.1",
     "@types/react": "~19.1.0",
     "typescript": "~5.9.2"
   },

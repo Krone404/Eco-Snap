@@ -30,6 +30,8 @@ import CameraCapture, { CapturedMeta } from "./CameraCapture";
 
 import styles from "./styles";
 
+import CardFace from "./CardFace";
+
 import { analyzeWithVision, VisionLabel } from "./vision";
 
 import {
@@ -1059,95 +1061,55 @@ export default function App() {
 
               <ScrollView>
 
-                <Text style={localStyles.modalTitle}>
+                <CardFace
 
-                  {cardModal.template.commonName}
+                  template={cardModal.template}
 
-                </Text>
+                  stats={cardModal.stats}
 
-                <Text style={localStyles.modalSubtitle}>
+                  bonusPercent={cardModal.bonusPercent}
 
-                  {cardModal.template.scientificName}
+                  copiesOwned={cardModal.card.copiesOwned}
 
-                </Text>
+                  style={{ marginBottom: 16 }}
 
-                <Text style={localStyles.modalRarity}>
-
-                  Rarity: {renderRarity(cardModal.template.rarity)}
-
-                </Text>
+                />
 
 
 
-                <View style={localStyles.statGrid}>
+                <View style={localStyles.modalMeta}>
 
-                  {STAT_KEYS.map((key) => (
+                  <Text style={localStyles.metaLine}>
 
-                    <View key={key} style={localStyles.statRow}>
-
-                      <Text style={localStyles.statLabel}>{STAT_LABELS[key]}</Text>
-
-                      <Text style={localStyles.statValue}>
-
-                        {cardModal.stats[key]}
-
-                      </Text>
-
-                    </View>
-
-                  ))}
-
-                </View>
-
-
-
-                <Text style={localStyles.factTitle}>Fun fact</Text>
-
-                <Text style={localStyles.factBody}>
-
-                  {cardModal.template.funFact}
-
-                </Text>
-
-
-
-                <View style={localStyles.metaRow}>
-
-                  <Text>Level: {cardModal.card.level}</Text>
-
-                  <Text>
-
-                    Capture bonus: +{cardModal.bonusPercent}%
+                    Level {cardModal.card.level} | Total captures {cardModal.card.totalCaptured}
 
                   </Text>
 
-                </View>
+                  <Text style={localStyles.metaLine}>
 
-
-
-                <Text style={localStyles.metaLine}>
-
-                  Copies banked: {cardModal.card.copiesOwned}
-
-                </Text>
-
-                <Text style={localStyles.metaLine}>
-
-                  {cardModal.neededForNext} more capture(s) for next upgrade.
-
-                </Text>
-
-
-
-                {cardModal.outcome === "upgraded" && (
-
-                  <Text style={localStyles.metaHighlight}>
-
-                    Upgraded by {cardModal.levelsGained} level(s)!
+                    {cardModal.neededForNext} more capture{cardModal.neededForNext === 1 ? '' : 's'} for next upgrade.
 
                   </Text>
 
-                )}
+                  {cardModal.outcome === 'upgraded' ? (
+
+                    <Text style={localStyles.metaHighlight}>
+
+                      Upgraded by {cardModal.levelsGained} level{(cardModal.levelsGained ?? 1) > 1 ? 's' : ''}!
+
+                    </Text>
+
+                  ) : cardModal.outcome === 'duplicate' ? (
+
+                    <Text style={localStyles.metaLine}>
+
+                      Duplicate captured. Progress saved toward the next upgrade.
+
+                    </Text>
+
+                  ) : null}
+
+                </View>
 
               </ScrollView>
 
@@ -1337,81 +1299,65 @@ export default function App() {
 
                     const partyFull = party.length >= PARTY_LIMIT;
 
+                    const needed = getNeededForNextUpgrade(card);
+
+
+
                     return (
 
                       <View key={template.id} style={localStyles.collectionCard}>
 
-                        <View style={localStyles.cardInfo}>
+                        <CardFace
 
-                          <Text style={localStyles.cardName}>{template.commonName}</Text>
+                          template={template}
 
-                          <Text style={localStyles.cardMeta}>
+                          stats={stats}
 
-                            Lvl {card.level} | +{bonusPercent}% bonus
+                          bonusPercent={bonusPercent}
+
+                          copiesOwned={card.copiesOwned}
+
+                          variant="compact"
+
+                          showFunFact={false}
+
+                        />
+
+
+
+                        <View style={localStyles.collectionFooter}>
+
+                          <Text style={localStyles.metaLine}>
+
+                            Next upgrade in {needed} capture{needed === 1 ? '' : 's'}.
 
                           </Text>
 
-                          <Text style={localStyles.cardMeta}>
+                          <Pressable
 
-                            Copies: {card.copiesOwned} | Next upgrade in {getNeededForNextUpgrade(card)}
+                            style={[
 
-                          </Text>
+                              localStyles.actionButton,
 
-                        </View>
+                              (inParty || partyFull) && localStyles.actionButtonDisabled,
 
+                            ]}
 
+                            onPress={() => addToParty(template.id)}
 
-                        <View style={localStyles.cardStatsRow}>
+                            disabled={inParty || partyFull}
 
-                          {STAT_KEYS.map((key) => (
+                          >
 
-                            <Text key={key} style={localStyles.cardStat}>
+                            <Text style={localStyles.actionText}>
 
-                              {STAT_LABELS[key]} {stats[key]}
+                              {inParty ? 'In Party' : partyFull ? 'Party Full' : 'Add to Party'}
 
                             </Text>
 
-                          ))}
+                          </Pressable>
 
                         </View>
-
-
-
-                        <Pressable
-
-                          style={[
-
-                            localStyles.actionButton,
-
-                            {
-
-                              backgroundColor: inParty
-
-                                ? "#95a5a6"
-
-                                : partyFull
-
-                                ? "#95a5a6"
-
-                                : "#2ecc71",
-
-                            },
-
-                          ]}
-
-                          onPress={() => addToParty(template.id)}
-
-                          disabled={inParty || partyFull}
-
-                        >
-
-                          <Text style={localStyles.actionText}>
-
-                            {inParty ? "In Party" : partyFull ? "Party Full" : "Add to Party"}
-
-                          </Text>
-
-                        </Pressable>
 
                       </View>
 
@@ -1470,45 +1416,91 @@ export default function App() {
                 </View>
 
                 <View style={localStyles.battleCardsRow}>
-                  <View style={localStyles.battleCard}>
-                    <Text style={localStyles.battleCardLabel}>You</Text>
-                    {battleState.player[0] ? (
-                      <>
-                        <Text style={localStyles.cardName}>
-                          {battleState.player[0].template.commonName}
-                        </Text>
-                        <View style={localStyles.battleStats}>
-                          {STAT_KEYS.map((key) => (
-                            <Text key={key} style={localStyles.battleStatText}>
-                              {STAT_LABELS[key]} {battleState.player[0].stats[key]}
-                            </Text>
-                          ))}
-                        </View>
-                        <Text style={localStyles.cardMeta}>
-                          Cards left: {battleState.player.length}
-                        </Text>
-                      </>
-                    ) : (
-                      <Text style={localStyles.cardMeta}>No cards remaining.</Text>
-                    )}
-                  </View>
 
                   <View style={localStyles.battleCard}>
-                    <Text style={localStyles.battleCardLabel}>Opponent</Text>
-                    {battleState.opponent[0] ? (
+
+                    <Text style={localStyles.battleCardLabel}>You</Text>
+
+                    {battleState.player[0] ? (
+
                       <>
-                        <Text style={localStyles.cardName}>Unknown creature</Text>
+
+                        <CardFace
+
+                          template={battleState.player[0].template}
+
+                          stats={battleState.player[0].stats}
+
+                          variant="compact"
+
+                          showFunFact={false}
+
+                        />
+
                         <Text style={localStyles.cardMeta}>
-                          Cards left: {battleState.opponent.length}
+
+                          Cards left: {battleState.player.length}
+
                         </Text>
-                        <Text style={localStyles.cardMeta}>
-                          Stats hidden until the battle is decided.
-                        </Text>
+
                       </>
+
                     ) : (
+
                       <Text style={localStyles.cardMeta}>No cards remaining.</Text>
+
                     )}
+
                   </View>
+
+
+
+                  <View style={localStyles.battleCard}>
+
+                    <Text style={localStyles.battleCardLabel}>Opponent</Text>
+
+                    {battleState.opponent[0] ? (
+
+                      <>
+
+                        <CardFace
+
+                          template={battleState.opponent[0].template}
+
+                          stats={battleState.opponent[0].stats}
+
+                          variant="compact"
+
+                          showFunFact={false}
+
+                          titleOverride="Unknown creature"
+
+                          subtitleOverride="Identity unknown"
+
+                          maskStats
+
+                          maskedMessage="Stats hidden until the battle ends."
+
+                          hideRarity
+
+                        />
+
+                        <Text style={localStyles.cardMeta}>
+
+                          Cards left: {battleState.opponent.length}
+
+                        </Text>
+
+                      </>
+
+                    ) : (
+
+                      <Text style={localStyles.cardMeta}>No cards remaining.</Text>
+
+                    )}
+
+                  </View>
+
                 </View>
 
                 <View style={localStyles.battleControls}>
@@ -1665,16 +1657,6 @@ export default function App() {
     </View>
 
   );
-
-}
-
-function renderRarity(rarity: number): string {
-
-  const stars = "*".repeat(rarity);
-
-  const blanks = ".".repeat(Math.max(0, 5 - rarity));
-
-  return `${stars}${blanks}`;
 
 }
 
@@ -1876,72 +1858,15 @@ const localStyles = StyleSheet.create({
 
   },
 
-  statGrid: {
-
-    marginTop: 16,
-
-    borderTopWidth: StyleSheet.hairlineWidth,
-
-    borderTopColor: "#dfe6e9",
-
-  },
-
-  statRow: {
-
-    flexDirection: "row",
-
-    justifyContent: "space-between",
-
-    paddingVertical: 8,
-
-    borderBottomWidth: StyleSheet.hairlineWidth,
-
-    borderBottomColor: "#ecf0f1",
-
-  },
-
-  statLabel: {
-
-    fontWeight: "600",
-
-  },
-
-  statValue: {
-
-    fontWeight: "700",
-
-  },
-
-  factTitle: {
-
-    marginTop: 16,
-
-    fontWeight: "700",
-
-  },
-
-  factBody: {
-
-    marginTop: 4,
-
-    lineHeight: 20,
-
-  },
-
-  metaRow: {
-
-    marginTop: 16,
-
-    flexDirection: "row",
-
-    justifyContent: "space-between",
-
-  },
-
   metaLine: {
-
     marginTop: 6,
+    color: "#2d3436",
+    fontSize: 12,
+  },
 
+  modalMeta: {
+    gap: 8,
+    alignItems: "center",
   },
 
   metaHighlight: {
@@ -1972,6 +1897,11 @@ const localStyles = StyleSheet.create({
 
     alignItems: "center",
 
+  },
+
+  actionButtonDisabled: {
+    backgroundColor: "#95a5a6",
+    opacity: 0.7,
   },
 
   actionText: {
@@ -2080,32 +2010,6 @@ const localStyles = StyleSheet.create({
 
   },
 
-  cardStatsRow: {
-
-    flexDirection: "row",
-
-    flexWrap: "wrap",
-
-    gap: 6,
-
-    marginBottom: 8,
-
-  },
-
-  cardStat: {
-
-    fontSize: 12,
-
-    backgroundColor: "#ecf0f1",
-
-    paddingHorizontal: 8,
-
-    paddingVertical: 4,
-
-    borderRadius: 999,
-
-  },
-
   collectionList: {
 
     marginTop: 12,
@@ -2115,15 +2019,12 @@ const localStyles = StyleSheet.create({
   },
 
   collectionCard: {
+    gap: 12,
+  },
 
-    backgroundColor: "#f9f9f9",
-
-    borderRadius: 12,
-
-    padding: 14,
-
+  collectionFooter: {
+    marginTop: 8,
     gap: 8,
-
   },
 
   collectionEmpty: {
@@ -2177,17 +2078,8 @@ const localStyles = StyleSheet.create({
   },
 
   battleCard: {
-
     flex: 1,
-
-    backgroundColor: "#f4f6f8",
-
-    borderRadius: 12,
-
-    padding: 12,
-
-    gap: 6,
-
+    gap: 10,
   },
 
   battleCardLabel: {
@@ -2200,13 +2092,7 @@ const localStyles = StyleSheet.create({
 
   },
 
-  battleStats: {
-
-    gap: 4,
-
-  },
-
-  battleStatText: {
+battleStatText: {
 
     fontSize: 12,
 

@@ -27,6 +27,9 @@ export type SpeciesTemplate = {
   baseStats: StatBlock;
   funFact: string;
   aliases: string[];
+  gradient: [string, string];
+  icon: string;
+  accentColor: string;
   image?: string;
 };
 
@@ -54,6 +57,9 @@ const templates: Record<SpeciesId, SpeciesTemplate> = {
       "sciurus carolinensis",
       "squirrel",
     ],
+    gradient: ["#6D4C41", "#A1887F"],
+    icon: "paw",
+    accentColor: "#F9E0C7",
   },
   "european-robin": {
     id: "european-robin",
@@ -76,6 +82,9 @@ const templates: Record<SpeciesId, SpeciesTemplate> = {
       "robin redbreast",
       "erithacus rubecula",
     ],
+    gradient: ["#0984E3", "#74B9FF"],
+    icon: "bird",
+    accentColor: "#D6ECFF",
   },
   "common-hedgehog": {
     id: "common-hedgehog",
@@ -98,6 +107,9 @@ const templates: Record<SpeciesId, SpeciesTemplate> = {
       "erinaceus europaeus",
       "hedgehog",
     ],
+    gradient: ["#8E6E53", "#C49A6C"],
+    icon: "shield-half",
+    accentColor: "#F5E6D3",
   },
   "english-oak": {
     id: "english-oak",
@@ -121,6 +133,9 @@ const templates: Record<SpeciesId, SpeciesTemplate> = {
       "quercus robur",
       "oak tree",
     ],
+    gradient: ["#2D6A4F", "#6AB04A"],
+    icon: "leaf",
+    accentColor: "#D6F0DC",
   },
   "silver-birch": {
     id: "silver-birch",
@@ -143,6 +158,9 @@ const templates: Record<SpeciesId, SpeciesTemplate> = {
       "birch tree",
       "birch",
     ],
+    gradient: ["#5DADE2", "#AED6F1"],
+    icon: "flower",
+    accentColor: "#E3F6FF",
   },
 };
 
