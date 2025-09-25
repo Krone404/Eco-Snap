@@ -7,26 +7,36 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  Linking,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import CameraCapture, { CapturedMeta } from "./CameraCapture";
 import styles from "./styles";
 import { analyzeWithVision, VisionLabel } from "./vision";
+import { searchInat, InatTaxon } from "./inat";
 
 export default function App() {
   const [openCamera, setOpenCamera] = useState(false);
   const [last, setLast] = useState<CapturedMeta | null>(null);
   const [labels, setLabels] = useState<VisionLabel[] | null>(null);
+  const [inatResult, setInatResult] = useState<InatTaxon | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleCaptured(meta: CapturedMeta) {
     setOpenCamera(false);
     setLast(meta);
     setLabels(null);
+    setInatResult(null);
     try {
       setLoading(true);
       const out = await analyzeWithVision(meta.uri, 6);
       setLabels(out);
+
+      if (out && out.length > 0) {
+        const best = out[0]; // highest confidence label
+        const res = await searchInat(best.description);
+        setInatResult(res);
+      }
     } catch (e: any) {
       console.error(e);
       Alert.alert("Vision error", e?.message ?? "Failed to analyze image");
@@ -89,6 +99,35 @@ export default function App() {
               <Text>— no labels —</Text>
             )}
           </View>
+
+          {/* iNaturalist result */}
+          {!loading && inatResult && (
+            <View
+              style={{ marginTop: 16, width: "100%", alignItems: "flex-start" }}
+            >
+              <Text style={{ fontWeight: "600", fontSize: 16 }}>
+                iNaturalist Match
+              </Text>
+              <Text>
+                {inatResult.preferred_common_name ?? inatResult.name} (
+                {inatResult.name})
+              </Text>
+              {inatResult.default_photo?.square_url && (
+                <Image
+                  source={{ uri: inatResult.default_photo.square_url }}
+                  style={{ width: 100, height: 100, marginTop: 8 }}
+                />
+              )}
+              {inatResult.wikipedia_url && (
+                <Text
+                  style={{ color: "blue", marginTop: 4 }}
+                  onPress={() => Linking.openURL(inatResult.wikipedia_url!)}
+                >
+                  {inatResult.wikipedia_url}
+                </Text>
+              )}
+            </View>
+          )}
         </View>
       )}
     </View>

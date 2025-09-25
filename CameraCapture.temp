@@ -1,7 +1,7 @@
 // CameraCapture.tsx
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
-import { CameraView, useCameraPermissions } from "expo-camera";
+import { CameraView, FlashMode, useCameraPermissions } from "expo-camera";
 import * as MediaLibrary from "expo-media-library";
 import * as Location from "expo-location";
 
@@ -21,7 +21,7 @@ type Props = {
 
 export default function CameraCapture({ onCaptured, onClose }: Props) {
   const [permission, requestPermission] = useCameraPermissions();
-  const [torchEnabled, setTorchEnabled] = useState(false);
+  const [flash, setFlash] = useState<FlashMode>(FlashMode.off);
   const camRef = useRef<CameraView>(null);
 
   useEffect(() => {
@@ -42,9 +42,7 @@ export default function CameraCapture({ onCaptured, onClose }: Props) {
         quality: 0.9,
         skipProcessing: true,
       });
-      if (!photo?.uri) {
-        throw new Error("Failed to capture photo");
-      }
+      if (!photo?.uri) throw new Error("Failed to capture photo");
 
       let savedToGallery = false;
       try {
@@ -69,9 +67,13 @@ export default function CameraCapture({ onCaptured, onClose }: Props) {
     }
   }
 
-  function toggleTorch() {
-    setTorchEnabled((prev) => !prev);
+  function toggleFlash() {
+    setFlash((current) =>
+      current === FlashMode.off ? FlashMode.torch : FlashMode.off
+    );
   }
+
+  const isTorchEnabled = flash === FlashMode.torch;
 
   if (!permission?.granted) {
     return (
@@ -96,20 +98,17 @@ export default function CameraCapture({ onCaptured, onClose }: Props) {
         ref={camRef}
         style={styles.camera}
         facing="back"
-        flash="off"
-        enableTorch={torchEnabled}
+        flash={flash}
       >
         <View style={styles.controls}>
           <Pressable
             style={[
               styles.controlButton,
-              { backgroundColor: torchEnabled ? "orange" : "black" },
+              { backgroundColor: isTorchEnabled ? "orange" : "black" },
             ]}
-            onPress={toggleTorch}
+            onPress={toggleFlash}
           >
-            <Text style={styles.controlText}>
-              {torchEnabled ? "Torch On" : "Torch Off"}
-            </Text>
+            <Text style={styles.controlText}>Flash</Text>
           </Pressable>
 
           <Pressable style={styles.captureButton} onPress={snap}>
@@ -160,8 +159,7 @@ const styles = StyleSheet.create({
   },
   controlText: {
     color: "white",
-    fontSize: 16,
-    textAlign: "center",
+    fontSize: 18,
   },
   center: {
     flex: 1,
@@ -180,3 +178,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
