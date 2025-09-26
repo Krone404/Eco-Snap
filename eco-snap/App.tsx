@@ -1,4 +1,4 @@
-// App.tsx
+﻿// App.tsx
 
 import React, { useEffect, useState } from "react";
 
@@ -32,7 +32,7 @@ import styles from "./styles";
 
 import CardFace from "./CardFace";
 
-import { analyzeWithVision, VisionLabel } from "./vision";
+import { analyzeWithVision } from "./vision";
 
 import {
 
@@ -456,7 +456,6 @@ export default function App() {
 
   const [last, setLast] = useState<CapturedMeta | null>(null);
 
-  const [labels, setLabels] = useState<VisionLabel[] | null>(null);
 
   const [loading, setLoading] = useState(false);
 
@@ -715,8 +714,6 @@ export default function App() {
 
     setLast(meta);
 
-    setLabels(null);
-
     setBanner(null);
 
     setCardModal(null);
@@ -729,7 +726,7 @@ export default function App() {
 
       const out = await analyzeWithVision(meta.uri, 6);
 
-      setLabels(out);
+      console.log("Vision labels", out);
 
 
 
@@ -1001,41 +998,14 @@ export default function App() {
 
 
 
-          <View style={{ marginTop: 12, width: "100%" }}>
-
-            <Text style={{ fontWeight: "600", fontSize: 16, marginBottom: 6 }}>
-
-              {loading ? "Analyzing..." : "Detected labels"}
-
-            </Text>
-
-            {loading && <ActivityIndicator />}
-
-            {!loading && labels && labels.length > 0 && (
-
-              <View style={{ gap: 4 }}>
-
-                {labels.map((l, i) => (
-
-                  <Text key={i}>
-
-                    - {l.description} ({(l.score * 100).toFixed(1)}%)
-
-                  </Text>
-
-                ))}
-
-              </View>
-
-            )}
-
-            {!loading && (!labels || labels.length === 0) && (
-
-              <Text>No labels detected.</Text>
-
-            )}
-
-          </View>
+          {loading && (
+            <View style={{ marginTop: 12, width: "100%" }}>
+              <Text style={{ fontWeight: "600", fontSize: 16, marginBottom: 6 }}>
+                Analyzing...
+              </Text>
+              <ActivityIndicator />
+            </View>
+          )}
 
         </View>
 
